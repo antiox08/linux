@@ -1,3 +1,5 @@
+import pytest
+
 from lib.db import (
     create_customer,
     get_customer_by_id,
@@ -6,33 +8,38 @@ from lib.db import (
 )
 
 
-def test_create_customer(connection):
-
-    data = {
-        "firstname": "Ivan",
-        "lastname": "Ivanov",
-        "email": "ivan@test.com",
-        "telephone": "123456789"
-    }
-
-    customer_id = create_customer(connection, data)
-
-    customer = get_customer_by_id(connection, customer_id)
-
-    assert customer is not None
-    assert customer["firstname"] == "Ivan"
-
-
-def test_update_customer(connection):
-
-    data = {
+@pytest.fixture
+def customer_data():
+    return {
         "firstname": "Test",
         "lastname": "User",
         "email": "test@test.com",
         "telephone": "111111"
     }
 
-    customer_id = create_customer(connection, data)
+
+@pytest.fixture
+def customer_id(connection, customer_data):
+    created_id = create_customer(connection, customer_data)
+
+    yield created_id
+
+    delete_customer(connection, created_id)
+
+
+def test_create_customer(connection, customer_data):
+
+    customer_id = create_customer(connection, customer_data)
+
+    customer = get_customer_by_id(connection, customer_id)
+
+    assert customer is not None
+    assert customer["firstname"] == customer_data["firstname"]
+
+    delete_customer(connection, customer_id)
+
+
+def test_update_customer(connection, customer_id):
 
     new_data = {
         "firstname": "Updated",
@@ -46,33 +53,19 @@ def test_update_customer(connection):
     customer = get_customer_by_id(connection, customer_id)
 
     assert customer["firstname"] == "Updated"
+    assert customer["lastname"] == "User"
     assert customer["email"] == "updated@test.com"
+    assert customer["telephone"] == "222222"
 
 
-def test_update_nonexistent_customer(connection):
+def test_update_nonexistent_customer(connection, customer_data):
 
-    data = {
-        "firstname": "AAA",
-        "lastname": "BBB",
-        "email": "ccc@test.com",
-        "telephone": "000"
-    }
-
-    rows = update_customer(connection, 99999999, data)
+    rows = update_customer(connection, 99999999, customer_data)
 
     assert rows == 0
 
 
-def test_delete_customer(connection):
-
-    data = {
-        "firstname": "Delete",
-        "lastname": "Me",
-        "email": "delete@test.com",
-        "telephone": "333333"
-    }
-
-    customer_id = create_customer(connection, data)
+def test_delete_customer(connection, customer_id):
 
     delete_customer(connection, customer_id)
 
