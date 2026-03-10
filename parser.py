@@ -6,14 +6,19 @@ from collections import defaultdict
 def parse_log_line(line):
     parts = line.split()
 
-    ip = parts[0]
-    method = parts[5].strip('"')
-    url = parts[6]
-    time = parts[3].strip('[')
-    duration = int(parts[-1])
+    if len(parts) < 8:
+        return None
+
+    try:
+        ip = parts[0]
+        method = parts[5].strip('"')
+        url = parts[6]
+        time = parts[3].strip('[')
+        duration = int(parts[-1])
+    except (ValueError, IndexError):
+        return None
 
     return ip, method, url, time, duration
-
 
 def analyze_log(file_path):
     total_requests = 0
